@@ -7,7 +7,7 @@
 https://nodejs.org/en/learn/getting-started/how-to-install-nodejs
 
 ```sh
- npm install -g expo-cli
+npm install -g expo-cli
 ```
 
 ```sh
