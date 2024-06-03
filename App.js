@@ -1,82 +1,113 @@
 import * as React from 'react';
-import TasksScreen from './pages/TasksScreen';
-import SettingsScreen from './pages/SettingsScreen';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer';
+import { useState, useEffect } from 'react';
 import { View, Text, Button } from 'react-native';
+import axios from 'axios';
+import { FlatList } from 'react-native-gesture-handler';
 
-const Tab = createBottomTabNavigator();
-const HomeStack = createStackNavigator();
-const TasksStack = createStackNavigator();
-const SettingsStack = createStackNavigator();
-const Drawer = createDrawerNavigator();
+const DataFetchingComponent = () => {
+    const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-const HomeStackScreen = () => (
-  <HomeStack.Navigator>
-    <HomeStack.Screen name="Домашняя страница" component={HomeScreen} />
-  </HomeStack.Navigator>
-);
+    useEffect(() => {
+        axios.get('https://jsonplaceholder.typicode.com/todos')
+            .then(response => {
+                setData(response.data);
+                setLoading(false);
+            })
+            .catch(error => {
+                setError(error);
+                setLoading(false);
+            });
+    }, []);
 
-const TasksStackScreen = () => (
-  <TasksStack.Navigator>
-    <TasksStack.Screen name="Настройки" component={SettingsScreen} />
-  </TasksStack.Navigator>
-);
+    if (loading) return <Text>Loading...</Text>;
+    if (error) return <Text>Error: {error.message}</Text>;
 
-const SettingsStackScreen = () => (
-  <SettingsStack.Navigator>
-      <TasksStack.Screen name="Задачи" component={TasksScreen} />
-  </SettingsStack.Navigator>
+    return (
+        <View>
+            <Text>Data</Text>
+            <FlatList 
+                data={data}
+                renderItem={ListItem}
+                keyExtractor={item => item.id}
+            />
+        </View>
+    );
+};
+
+const LocalStorageComponent = () => {
+    const [data, setData] = useState(() => {
+        const savedData = localStorage.getItem('todos');
+        return savedData ? JSON.parse(savedData) : [];
+    });
+
+    useEffect(() => {
+        localStorage.setItem('todos', JSON.stringify(data));
+    }, [data]);
+
+    const addItem = () => {
+        const newData = [...data, { id: data.length, title: `Item ${data.length}` }];
+        setData(newData);
+    };
+
+    return (
+        <View>
+            <Text>Local Storage Data</Text>
+            <FlatList 
+                data={data}
+                renderItem={ListItem}
+                keyExtractor={item => item.id}
+            />
+            <Button onPress={addItem} title="Add Item"/>
+        </View>
+    );
+};
+
+const CounterComponent = () => {
+    const [count, setCount] = useState(0);
+
+    return (
+        <View>
+            <Text>Count: {count}</Text>
+            <Button onPress={() => setCount(count + 1)} title="Increment" />
+        </View>
+    );
+};
+
+const TimerComponent = () => {
+    const [seconds, setSeconds] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setSeconds(prev => prev + 1);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <View>
+            <Text>Seconds: {seconds}</Text>
+        </View>
+    );
+};
+
+const ListItem = ({ item }) => (
+  <View>
+      <Text>{item.title}</Text>
+  </View>
 );
 
 const App = () => {
   return (
-    <NavigationContainer>
-      <DrawerNavigation/>
-    </NavigationContainer>
-);
+      <View>
+          <LocalStorageComponent />
+          <DataFetchingComponent />
+          <CounterComponent />
+          <TimerComponent />
+      </View>
+  );
 };
-
-/** Версия с Навигацией по табам */
-
-// const App = () => {
-//   return (
-//     <NavigationContainer>
-//       <TabsNavigation/>
-//     </NavigationContainer>
-// );
-// };
-
-const DrawerNavigation = () => {
-    return (
-      <Drawer.Navigator initialRouteName="Домашняя страница">
-        <Drawer.Screen name="Home" component={HomeStackScreen} />
-        <Drawer.Screen name="Profile" component={TasksStackScreen} />
-      </Drawer.Navigator>
-    )
-};
-
-
-const TabsNavigation = () => {
-  return (
-    <Tab.Navigator>
-      <Tab.Screen name="Домашняя страница" component={HomeStackScreen} />
-      <Tab.Screen name="Страница задач" component={TasksStackScreen} />
-      <Tab.Screen name="Настройки" component={SettingsStackScreen} />
-  </Tab.Navigator>
-  )
-  
-}
-
-
-const HomeScreen = ({navigation}) => (
-  <View>
-    <Text>Домашняя страница</Text>
-    <Button onPress={() => navigation.openDrawer()}>Открыть меню</Button>
-    <Button onPress={() => navigation.closeDrawer()}>Домашняя страница</Button>
-  </View>
-);
 
 export default App;
